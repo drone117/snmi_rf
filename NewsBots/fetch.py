@@ -3,13 +3,12 @@ from bs4 import BeautifulSoup
 import urllib.request
 import urllib.parse
 
-
 from urllib.request import urlopen
-
 
 # domain_rf = u'http://снми.рф/архив'
 # domain = domain_rf.encode('idna')
 latest_news_text = ''
+previous_news_text = ''
 latest_date = ''
 archive_url = "https://xn--h1ahcp.xn--p1ai/%D0%B0%D1%80%D1%85%D0%B8%D0%B2/"
 archive_page = urlopen(archive_url)
@@ -34,6 +33,7 @@ for tags in soup_latest.find_all(["h2", "p"]):
         latest_news_text = latest_news_text + '\n' + '*' + tags.text + '*' + '\n'
     else:
         latest_news_text = latest_news_text + tags.text + '\n'
+
 
 # print(latest_news_text)
 

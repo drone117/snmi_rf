@@ -2,81 +2,109 @@ import logging
 import pytz
 import fetch
 import telegram.ext
+import datetime
 
-
-from datetime import datetime
-from telegram import Update
+# from datetime import datetime
+# from datetime import time
+from telegram import Update, ReplyKeyboardMarkup
 from telegram.ext import Updater
 from telegram.ext import CallbackContext
 from telegram.ext import CommandHandler
 from telegram.ext import MessageHandler, Filters, InlineQueryHandler
-
 
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 latest_news = fetch.latest_news_text
 
+user_hour = 13
+user_minute = 0
+user_time = f'{user_hour}:{user_minute}'
+
 
 def start(update, context):
     context.bot.send_message(chat_id=update.effective_chat.id, text="Добро пожаловать! Данный бот присылает новостной "
-                                                                    "деск с сайта СнМИ.рф каждый день по умолчанию "
+                                                                    "деск с сайта СнМИ.рф каждый будний день "
+                                                                    "по умолчанию "
                                                                     "в 13:00, а также предоставляет доступ к архиву "
                                                                     "новостей.\n"
                                                                     "\n"
                                                                     "Команды\n"
+                                                                    "/start - перезапуск бота после его остановки\n"
                                                                     "/archive - получить доступ к архиву\n"
                                                                     "/settime - выбрать время получения новостей\n"
-                                                                    "/latest - получить последний выпуск\n")
+                                                                    "/latest - получить последний выпуск\n"
+                                                                    "/stop - остановить бота\n")
+    context.job_queue.stop()
+    context.job_queue.start()
+    timejob = datetime.time(hour=user_hour, minute=user_minute, tzinfo=pytz.timezone('Europe/Moscow'))
+    context.job_queue.run_daily(auto_news, timejob,
+                                days=(0, 1, 2, 3, 4), context=update.message.chat_id)
+
+
+def stop(update, context):
+    context.bot.send_message(chat_id=update.message.chat_id, text='Бот остановален')
+    context.job_queue.stop()
+
+
+def time(update, context):
+    global user_time, user_hour, user_minute
+    user_time = update.message.text
+    if len(user_time) > 5 or user_time[2] != ':' or int(user_time.split(':')[0]) > 23 or int(user_time.split(':')[1]) > 59:
+        context.bot.send_message(chat_id=update.effective_chat.id, text=f"Пожалуйста введите время в формате ЧЧ:ММ")
+    else:
+        user_time = update.message.text
+        user_time = user_time[:5]
+        user_hour = int(user_time.split(':')[0])
+        user_minute = int(user_time.split(':')[1])
+        context.bot.send_message(chat_id=update.effective_chat.id, text=f"Теперь новости будут приходить в {user_time}")
+        context.job_queue.stop()
+        context.job_queue.start()
+        timejob = datetime.time(hour=user_hour, minute=user_minute, tzinfo=pytz.timezone('Europe/Moscow'))
+        context.job_queue.run_daily(auto_news, timejob, days=(0, 1, 2, 3, 4), context=update.message.chat_id)
 
 
 def settime(update, context):
-    context.bot.send_message(chat_id=update.effective_chat.id, text="Пожалуйста, выберете время")
-    user_time = "13:00"
-    context.bot.send_message(chat_id=update.effective_chat.id, text=f"Теперь новости будут приходить в {user_time}")
+    context.bot.send_message(chat_id=update.effective_chat.id, text="Пожалуйста, выберете время в формате ЧЧ:ММ "
+                                                                    "по Москве\n"
+                                                                    "Обращаем внимание - дайджест на сайте снми.рф "
+                                                                    "обновляется каждый "
+                                                                    "будний день не позднее 13:00")
+    context.job_queue.run_once(time, when=0, context=update.message.chat_id)
 
 
 def latest(update, context):
     if len(latest_news) > 4096:
         for x in range(0, len(latest_news), 4096):
-            context.bot.send_message(chat_id=update.effective_chat.id, text=latest_news[x:x+4096],
+            context.bot.send_message(chat_id=update.effective_chat.id, text=latest_news[x:x + 4096],
                                      parse_mode=telegram.ParseMode.MARKDOWN)
     else:
         context.bot.send_message(chat_id=update.effective_chat.id, text=latest_news,
                                  parse_mode=telegram.ParseMode.MARKDOWN)
 
 
-def auto_news(context):
-    context.bot.send_message(context.job.context, text=f"{latest_news}")
-
-
-def time(update, context):
-    context.job_queue.run_daily(auto_news, datetime.time(hour=17, minute=19,
-                                                         tzinfo=pytz.timezone('Europe/Moscow')),
-                                days=(0, 1, 2, 3, 4, 5, 6), context=update.message.chat_id)
-
-
-def timefunc():
-    now = datetime.now()
-    current_month = now.month
-    current_day = now.day
-    current_time = now.strftime("%H:%M:%S")
-#     if current_time == "16:30:00":
-#         return True
-#     else:
-#         return False
+def auto_news(update, context):
+    if len(latest_news) > 4096:
+        for x in range(0, len(latest_news), 4096):
+            context.bot.send_message(chat_id=context.job.context, text=latest_news[x:x + 4096],
+                                     parse_mode=telegram.ParseMode.MARKDOWN)
+    else:
+        context.bot.send_message(context.job.context, text=latest_news,
+                                 parse_mode=telegram.ParseMode.MARKDOWN)
 
 
 def main():
     updater = Updater(token='5381998359:AAH-fTcEBFzbuvGc4hHDmqbaKpS3PZFcOmQ', use_context=True)
     dispatcher = updater.dispatcher
-    start_handler = CommandHandler('start', start)
+    start_handler = CommandHandler('start', start, pass_job_queue=True)
     dispatcher.add_handler(start_handler)
-    settime_handler = CommandHandler('settime', settime)
+    settime_handler = CommandHandler('settime', settime, pass_job_queue=True)
     dispatcher.add_handler(settime_handler)
     latest_handler = CommandHandler('latest', latest)
     dispatcher.add_handler(latest_handler)
-    time_handler = MessageHandler(Filters.text, time)
+    stop_handler = CommandHandler('stop', stop, pass_job_queue=True)
+    dispatcher.add_handler(stop_handler)
+    time_handler = MessageHandler(Filters.text, time, pass_job_queue=True)
     dispatcher.add_handler(time_handler)
     updater.start_polling()
     updater.idle()
