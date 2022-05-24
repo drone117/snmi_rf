@@ -21,8 +21,8 @@ logger = logging.getLogger(__name__)
 user_hour = 13
 user_minute = 0
 user_time = f'{user_hour}:{user_minute}'
-kektext = 'kektext'
-#kektext = fetcher.fetch_data()
+
+kektext = fetcher.fetch_data()
 
 def start(update, context):
     context.bot.send_message(chat_id=update.effective_chat.id, text="Добро пожаловать! Данный бот присылает новостной "
@@ -37,17 +37,19 @@ def start(update, context):
                                                                     "/settime - выбрать время получения новостей\n"
                                                                     "/latest - получить последний выпуск\n"
                                                                     "/stop - остановить бота\n")
-    #context.job_queue.stop()
+    for job in context.job_queue.get_jobs_by_name('auto_news'):
+        job.schedule_removal()
     context.job_queue.start()
     timejob = datetime.time(hour=user_hour, minute=user_minute, tzinfo=pytz.timezone('Europe/Moscow'))
     context.job_queue.run_daily(auto_news, timejob, days=(0, 1, 2, 3, 4), context=update.message.chat_id)
-    #context.job_queue.run_repeating(text, 1, context=update.message.chat_id)
+
 
 
 def stop(update, context):
     context.bot.send_message(chat_id=update.message.chat_id, text='Бот остановален')
-    context.job_queue.stop()
-    #context.job_queue.start()
+    for job in context.job_queue.get_jobs_by_name('auto_news'):
+        job.schedule_removal()
+
 
 
 def time(update, context):
@@ -62,6 +64,8 @@ def time(update, context):
         user_minute = int(user_time.split(':')[1])
         context.bot.send_message(chat_id=update.effective_chat.id, text=f"Теперь новости будут приходить в {user_time}")
         #context.job_queue.stop()
+        for job in context.job_queue.get_jobs_by_name('auto_news'):
+            job.schedule_removal()
         context.job_queue.start()
         timejob = datetime.time(hour=user_hour, minute=user_minute, tzinfo=pytz.timezone('Europe/Moscow'))
         context.job_queue.run_daily(auto_news, timejob, days=(0, 1, 2, 3, 4), context=update.message.chat_id)
@@ -78,7 +82,7 @@ def settime(update, context):
 
 
 def latest(update, context):
-    context.bot.send_message(chat_id=update.effective_chat.id, text=kektext, parse_mode=telegram.ParseMode.MARKDOWN)
+    #context.bot.send_message(chat_id=update.effective_chat.id, text=kektext, parse_mode=telegram.ParseMode.MARKDOWN)
     # if len(latest_news) > 4096:
     #     # for x in range(0, len(latest_news), 4096):
     #         # if latest_news[x + 4095] == "*":
@@ -88,14 +92,25 @@ def latest(update, context):
     # else:
     #     context.bot.send_message(chat_id=update.effective_chat.id, text=latest_news,
     #                              parse_mode=telegram.ParseMode.MARKDOWN)
+    context.bot.send_message(chat_id=update.effective_chat.id, text=fetcher.fetch_date(),
+                             parse_mode=telegram.ParseMode.MARKDOWN)
+    for keys in fetcher.fetch_data():
+        if len(fetcher.fetch_data()[keys]) > 4096:
+            context.bot.send_message(chat_id=update.effective_chat.id,
+                                     text=keys + '\n', parse_mode=telegram.ParseMode.MARKDOWN)
+            for x in range(0, len(fetcher.fetch_data()[keys]), 4096):
+                context.bot.send_message(chat_id=update.effective_chat.id,
+                                         text=fetcher.fetch_data()[keys][x:x + 4096],
+                                         parse_mode=telegram.ParseMode.MARKDOWN)
+        else:
+            context.bot.send_message(chat_id=update.effective_chat.id, text=keys + '\n' + fetcher.fetch_data()[keys],
+                                     parse_mode=telegram.ParseMode.MARKDOWN)
 
 def text(context):
     context.bot.send_message(context.job.context, text='test', disable_notification=False)
 
 
 def auto_news(context):
-    context.bot.send_message(context.job.context, text='kekw',
-                             parse_mode=telegram.ParseMode.MARKDOWN)
     # if len(latest_news) > 4096:
     #     for x in range(0, len(latest_news), 4096):
     #         context.bot.send_message(context.job.context, text=latest_news[x:x + 4096],
@@ -103,6 +118,19 @@ def auto_news(context):
     # else:
     #     context.bot.send_message(context.job.context, text=latest_news,
     #                              parse_mode=telegram.ParseMode.MARKDOWN)
+    context.bot.send_message(context.job.context, text=fetcher.fetch_date(),
+                             parse_mode=telegram.ParseMode.MARKDOWN)
+    for keys in fetcher.fetch_data():
+        if len(fetcher.fetch_data()[keys]) > 4096:
+            context.bot.send_message(context.job.context,
+                                     text=keys + '\n', parse_mode=telegram.ParseMode.MARKDOWN)
+            for x in range(0, len(fetcher.fetch_data()[keys]), 4096):
+                context.bot.send_message(context.job.context,
+                                         text=fetcher.fetch_data()[keys][x:x + 4096],
+                                         parse_mode=telegram.ParseMode.MARKDOWN)
+        else:
+            context.bot.send_message(context.job.context, text=keys + '\n' + fetcher.fetch_data()[keys],
+                                     parse_mode=telegram.ParseMode.MARKDOWN)
 
 
 def error(update, context):
