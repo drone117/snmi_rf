@@ -2,9 +2,11 @@ import re
 from bs4 import BeautifulSoup
 import urllib.request
 import urllib.parse
+import ssl
 
 from urllib.request import urlopen
 
+ssl.match_hostname = lambda cert, hostname: True
 # domain_rf = u'http://снми.рф/архив'
 # domain = domain_rf.encode('idna')
 class fetcher():
