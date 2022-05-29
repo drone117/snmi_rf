@@ -33,7 +33,7 @@ class fetcher():
                 latest_news_head = '*' + tags.text + '*'
                 latest_news_dict[latest_news_head] = ''
             else:
-                latest_news_dict[latest_news_head] = latest_news_dict[latest_news_head] + tags.text + ' '
+                latest_news_dict[latest_news_head] = latest_news_dict[latest_news_head] + tags.text
         return latest_news_dict
 
     @staticmethod

@@ -18,8 +18,8 @@ logger = logging.getLogger(__name__)
 
 #latest_news = fetch.latest_news_text
 
-user_hour = 13
-user_minute = 0
+user_hour = 16
+user_minute = 51
 user_time = f'{user_hour}:{user_minute}'
 
 kektext = fetcher.fetch_data()
@@ -41,7 +41,7 @@ def start(update, context):
         job.schedule_removal()
     context.job_queue.start()
     timejob = datetime.time(hour=user_hour, minute=user_minute, tzinfo=pytz.timezone('Europe/Moscow'))
-    context.job_queue.run_daily(auto_news, timejob, days=(0, 1, 2, 3, 4), context=update.message.chat_id)
+    context.job_queue.run_daily(auto_news, timejob, days=(0, 1, 2, 3, 4, 5, 6), context=update.message.chat_id)
 
 
 
@@ -68,7 +68,7 @@ def time(update, context):
             job.schedule_removal()
         context.job_queue.start()
         timejob = datetime.time(hour=user_hour, minute=user_minute, tzinfo=pytz.timezone('Europe/Moscow'))
-        context.job_queue.run_daily(auto_news, timejob, days=(0, 1, 2, 3, 4), context=update.message.chat_id)
+        context.job_queue.run_daily(auto_news, timejob, days=(0, 1, 2, 3, 4, 5, 6), context=update.message.chat_id)
         #context.job_queue.run_repeating(text, 5, context=update.message.chat_id)
 
 
