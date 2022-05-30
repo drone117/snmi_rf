@@ -28,6 +28,10 @@ def start(update, context):
                                                                     "/start - перезапустить бота\n"
                                                                     "/stop - остановить бота\n"
                                                                     "/latest - получить последний выпуск\n")
+    global user_time, user_hour, user_minute
+    user_hour = 13
+    user_minute = 0
+    user_time = f'{user_hour}:{user_minute}'
     for job in context.job_queue.get_jobs_by_name('auto_news'):
         job.schedule_removal()
     context.job_queue.start()
