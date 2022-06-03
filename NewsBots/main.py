@@ -13,7 +13,7 @@ logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s
 logger = logging.getLogger(__name__)
 
 user_hour = 13
-user_minute = 0
+user_minute = 00
 user_time = f'{user_hour}:{user_minute}'
 
 
@@ -30,14 +30,14 @@ async def start(update: Update, context: CallbackContext):
                                     "/latest - получить последний выпуск\n")
     global user_time, user_hour, user_minute
     user_hour = 13
-    user_minute = 0
+    user_minute = 00
     user_time = f'{user_hour}:{user_minute}'
     chat_id = update.effective_message.chat_id
     job_removed = remove_job_if_exists(str(chat_id), context)
     name = update.effective_chat.full_name
     timejob = datetime.time(hour=user_hour, minute=user_minute, tzinfo=pytz.timezone('Europe/Moscow'))
     context.job_queue.run_daily(auto_news, timejob, days=(0, 1, 2, 3, 4), context=name,
-                                chat_id=update.message.chat_id)
+                                chat_id=update.message.chat_id, name=str(update.message.chat_id))
 
 
 def remove_job_if_exists(name: str, context: CallbackContext) -> bool:
@@ -103,7 +103,7 @@ async def time(update: Update, context: CallbackContext):
         name = update.effective_chat.full_name
         timejob = datetime.time(hour=user_hour, minute=user_minute, tzinfo=pytz.timezone('Europe/Moscow'))
         context.job_queue.run_daily(auto_news, timejob, days=(0, 1, 2, 3, 4), context=name,
-                                    chat_id=update.message.chat_id)
+                                    chat_id=update.message.chat_id, name=str(update.message.chat_id))
 
 
 async def stop(update: Update, context: CallbackContext) -> None:
